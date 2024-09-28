@@ -136,9 +136,19 @@ Cài đặt SSL cho NGINX với Certbot.
 sudo apt install certbot python3-certbot-nginx
 # Yêu cầu chứng chỉ SSL và tự động cấu hình cho NGINX bằng lệnh sau:
 sudo certbot --nginx -d iot-mqtt-broker.click -d iot-mqtt-broker.click
+# Kiểm tra cấu hình và khởi chạy lại Nginx
+sudo nginx -t
+sudo systemctl restart nginx
 ```
 
-🏁 Như vậy, các bạn đã thêm chứng chỉ SSL cho Nginx và chuyển tiếp các yêu cầu HTTP sang HTTPS (chi tiết file cấu hình mosquitto-proxy.conf [tại đây](https://github.com/nhoc20170861/iot-mqtt-broker.click))
+🏁 Như vậy, các bạn đã thêm chứng chỉ SSL cho Nginx và chuyển tiếp các yêu cầu HTTP sang HTTPS (chi tiết file cấu hình [mosquitto-proxy.conf](https://github.com/nhoc20170861/iot-mqtt-broker.click/blob/main/mosquitto-proxy.conf))
+
+🥇 Hãy nghiệm thu lại các kết quả mình đã đạt được nhé. Các bạn có thể sử dụng [mqttx.app](https://mqttx.app/web-client) để tạo một Mqtt Client, các bạn hãy nhập thông tin máy chủ Mqtt của bạn và thử kết nối nhé ^^.
+
+![alt text](image.png)
+ngoài ra, các bạn có thể tham khảo thêm chương trình python để kiểm tra kết nối tới Mosquitto Broker qua WebSockets [tại đây nhé]().
+
+### 4. Sử dụng CloudFlare để quản lý tên miền.
 
 ## 💡 Tổng kết
 
