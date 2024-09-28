@@ -43,20 +43,21 @@ sudo ufw allow 9001/tcp   # Mở cổng WebSocket (nếu cần)
 - NAT Port:
   Các bạn hãy dùng thiết bị hỗ trợ trình duyệt đã kết nối sóng WiFi modem, để truy cập vào địa chỉ (**192.168.1.1**). Tuỳ theo modem nhà mạng, cách mở port (Port Forwarding) sẽ có giao diện khác nhau.
 
-![alt text](image-4.png)
+![alt text](asserts/Sơ_đồ_NAT_PORT.png)
 
 Nếu các bạn dùng nhà mạng fpt, các bạn có thể làm theo [hướng dẫn sau](https://cctvapp.net/2023/08/10/mo-port-nat-port-tren-modem-fpt-internet-hub-ac1000f/). Để Kiểm tra kết quả mở Port, bạn hãy truy cập trang [port-check](https://ping.eu/port-chk/)
 
 👉️ Nếu kết quả hiển thị như bên dưới, bạn đã mở **Port 1883** thành công. Các bạn hãy ghi nhớ địa chỉ IP Wan để kết nối **Mosquitto Broker** từ internet nhé.
 
-![alt text](image.png)
+![alt text](asserts/Port_Check.png)
 
 - 🗝️ Kiểm trả pub/sub tin nhắn thông qua mosquitto-clients:
 
 Trong [phần 2](https://viblo.asia/p/tich-hop-co-che-xac-thuc-uy-quyen-cho-mosquitto-broker-su-dung-plugin-mosquitto-go-auth-va-mysql-part-2-7ymJXP7WJkq), mình đã tạo một người dùng có tên **"user1"** và cấp quyền đọc ghi với chủ đề **"read_write_topic"**. Mình sẽ thêm chỉ thị `-d` để hiện thị **debug message**. Các bạn có thể xem thêm các tuỳ chọn bằng cách sử dụng: `mosquitto_sub --help` và `mossquitto_pub --help`.
 
-![alt text](image-1.png)
-Như vậy, 😃chúng ta đã đưa thành công máy chủ Mosquitto Broker từ local ra internet để có thể truy cập từ ngoài mạng. Đối với cổng **websocket 9001**, các bạn cũng có thể NAT Port tương tự nhé. Tuy nhiên, phần này mình sẽ sử dụng **NGINX** làm proxy cho Mosquitto Broker qua **WebSocket**.
+![alt text](asserts/mqtt_testing.png)
+
+Như vậy, 😃chúng ta đã đưa thành công máy chủ Mosquitto Broker từ local ra internet để có thể truy cập từ ngoài mạng. Đối với cổng **9001**, các bạn cũng có thể NAT Port tương tự nhé. Tuy nhiên, phần này mình sẽ sử dụng **NGINX** làm proxy cho Mosquitto Broker qua **WebSocket**.
 
 ### 3. Sử dụng NGINX làm proxy cho Mosquitto Broker
 
@@ -66,12 +67,13 @@ Như vậy, 😃chúng ta đã đưa thành công máy chủ Mosquitto Broker t�
 sudo ufw allow 'Nginx Full' # Đảm bảo mở tường lửa cho Nginx
 ```
 
-- Cấu hình NGINX để chuyển tiếp kết nối TCP trên cổng 1883:
+- **_Cấu hình NGINX để chuyển tiếp kết nối TCP trên cổng 1883_**:
 
 Nếu bạn muốn scale hệ thống lên thì **Nginx** rất hữu ích trong việc cân bằng tải khi cần chạy nhiều Mosquitto Broker khác nhau (mỗi broker sẽ chạy trên một container).
-![alt text](image-6.png)
 
-Nình sẽ cập nhập file `/etc/mosquitto/conf.d/default.conf` để Broker lắng nghe cổng **9883** và chỉ cần nhận các kết nối cục bộ.
+![alt text](asserts/Sơ_đồ_cấu_hình_Nginx.png)
+
+Mình sẽ cập nhập file `/etc/mosquitto/conf.d/default.conf` để Broker lắng nghe cổng **9883** và chỉ cần nhận các kết nối cục bộ.
 
 ```sh
 listener 9883 127.0.0.1
@@ -99,8 +101,11 @@ sudo systemctl restart nginx
 
 Như vậy, chúng ta đã cấu hình thành công Nginx chuyển tiếp (proxy) các kết nối TCP đến một dịch vụ phía sau như Mosquitto Broker.
 
-- Cấu hình NGINX để chuyển tiếp WebSocket:
+- **_Cấu hình NGINX để chuyển tiếp WebSocket_**:
 
+Cho phép các ứng dụng web có thể kết nối trực tiếp với broker mà không cần phải thông qua một server trung gian khác.
+
+![alt text](asserts/Sơ_Nginx_Proxy_Websockets.png)
 Các bạn hãy tạo thêm file `/etc/nginx/sites-available/mosquitto-proxy.conf` để để thiết lập **NGINX** như một reverse proxy cho kết nối **WebSocket** đến Mosquitto.
 
 Do đó thay vì mở cổng **9001**, các bạn chỉ cần NAT Port **80(HTTP)** và **443(HTTPS)**, nó giúp các bạn triển khai nhiều máy chủe Web khác không chỉ mỗi Mosquitto Broker.
@@ -145,18 +150,29 @@ sudo systemctl restart nginx
 
 🥇 Hãy nghiệm thu lại các kết quả mình đã đạt được nhé. Các bạn có thể sử dụng [mqttx.app](https://mqttx.app/web-client) để tạo một Mqtt Client, các bạn hãy nhập thông tin máy chủ Mqtt của bạn và thử kết nối nhé ^^.
 
-![alt text](image.png)
-ngoài ra, các bạn có thể tham khảo thêm chương trình python để kiểm tra kết nối tới Mosquitto Broker qua WebSockets [tại đây nhé]().
+![alt text](asserts/websockets_testing.png)
 
-### 4. Sử dụng CloudFlare để quản lý tên miền.
+> ✨️Ngoài ra, các bạn có thể tham khảo thêm chương trình python để kiểm tra kết nối tới Mosquitto Broker qua WebSockets [tại đây nhé](https://github.com/nhoc20170861/iot-mqtt-broker.click/tree/main/python-mqttt).
+
+### 4. Sử dụng CloudFlare (CF) để quản lý tên miền.
+
+Hiện tại, với tên miền giá rẻ mình mua, Tenten chưa hỗ chỡ cấu hình Dynamic DNS. Do đó mình sẽ chuyển tên miền **iot-mqtt-broker.click** về CloudFlare quản lý và sử dụng API của CF để cập nhập **record A** khi địa chỉ IP Wan bị thay đổi. Các bạn làm theo các bước dưới đây nhé.
+
+- [Trỏ Name servers về CloudFlare](https://help.tenten.vn/huong-dan-su-dung-cloudflare/): các bạn đặt nhớ chuyển **Proxy Status** sang **DNS only** nhé. (Vì tính năng TCP Proxied của CF cần trả phí, nên khi đó bạn sẽ không thể kết nối tới Mosquitto Broker qua cổng tcp/1883)
+- [Cập nhật IP động cho tên miền qua CloudFlare](https://thuanbui.me/cap-nhat-ip-dong-cho-ten-mien-qua-cloudflare-de-truy-cap-homelab-tai-nha/)
+
+  Các bạn có thể tham khảo mã `cloudflare_iot-mqtt-broker.sh` mình đã làm [tại đây](https://github.com/nhoc20170861/iot-mqtt-broker.click/tree/main/cloudflare_iot-mqtt-broker.sh) để tự động cập nhập địa chỉ IP Wan nha.
 
 ## 💡 Tổng kết
 
-🤝Như vậy, bài viết này mình đã hướng dẫn các bạn tích hợp plugin Mosquitto-go-auth và MySQL để xác thực và phân quyền người dùng cho Mosquitto Broker. Các bạn có thể xây dựng thêm một **Backend RESTfull API** và giao diện **Dashboard Admin** để thêm, sửa, xoá người dùng mới; hoặc theo dõi và quản lý trạng thái thiết bị và dữ liệu của chúng.
-♥️Một lần nữa mình xin cảm ơn các bạn đã dành thời gian theo dõi bài viết của mình, nếu có bất kì câu hỏi hay góp ý đừng ngần ngại mà để lại cho mình nhé!😀
+🤝Series này khá dài và nhiều kiến thức nâng cao, nên rất cảm kích các bạn đã dành thời gian để đọc bài viết của mình. Mình nhận thấy rằng kiến thức của mình còn nhiều hạn chết nên mình rất trân trọng nếu bạn có bất kì câu hỏi hay góp ý cho mình.
+
+♥️ Một lần nữa mình xin cảm ơn các bạn đã dành thời gian theo dõi chuỗi bài viết của mình 😀
 
 ## 🔗 Nguồn tham khảo
 
-- [1] [Cài đặt MySQL trên Ubuntu22.04](https://www.digitalocean.com/community/tutorials/how-to-install-mysql-on-ubuntu-22-04)
-- [2] [Cài đặt Go trên Ubuntu](https://go.dev/wiki/Ubuntu)
-- [3] [Mosquitto Go Auth](https://github.com/iegomez/mosquitto-go-auth)
+- [1] [Cài đặt Nginx trên Ubuntu22.04](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-22-04)
+- [2] [Cài đặt bảo mặt Nginx vơi Let's Encrypt](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-22-04)
+- [3] [Định cấu hình NGINX cho websockets bảo mật mosquitto mqtt](https://iotassistant.io/home-assistant/install-mqtt-websockets-on-nginx/)
+- [4] [Cấu hình Nginx cho TCP load Balancing](https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/)
+- [5] [Cập nhật IP động cho tên miền qua CloudFlare](https://thuanbui.me/cap-nhat-ip-dong-cho-ten-mien-qua-cloudflare-de-truy-cap-homelab-tai-nha)
